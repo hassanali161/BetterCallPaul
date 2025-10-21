@@ -1,2 +1,2 @@
 # BetterCallPaul
-A RAG baed web application for inquiring about Canadian laws.
+A RAG based web application for inquiring about Canadian laws.
