@@ -36,20 +36,19 @@ def answer(query):
       f"{query}"
   )[0]
 
-  print(score)
 
   if score < 0.70:
       return "I’m not confident which law your question relates to."
 
 
-  filter_data = doc.metadata["doc_title"]  # metadata based filter
-  print(filter_data)
+  name = doc.metadata["doc_title"]  # metadata to retrieve name of document
+  link = doc.metadata["doc_link"]  # metadata to retrieve reference link for document
 
   # search for relevant chunks from documents
   relevant_chunks = vectorDB.similarity_search(
      query,
      k=10, 
-     filter={"doc_title": f"{filter_data}"}
+     filter={"doc_title": f"{name}"}
   )
 
   # creating langchain components
@@ -62,21 +61,31 @@ def answer(query):
             You will be given:
             1. A user question about Canadian Acts or Regulations.
             2. A set of retrieved document excerpts (“context”).
+            3. A document NAME and LINK for the reference section.
 
-            Your job:
-            - Use ONLY the information found in the provided context to answer the question.
+            Your strict instructions:
+            - You MUST answer ONLY using information found in the provided CONTEXT.
             - If the context does not contain enough information to answer confidently, say:
-            “I cannot answer based on the retrieved documents.”
-            - Do NOT invent facts, interpretations, penalties, definitions, or legal rules that are not explicitly stated in the context.
-            - Keep the answer concise, neutral, and legally accurate.
-            - If the user asks for advice, warnings, or interpretations beyond the text, respond with:
-            “I can only provide information found in the retrieved documents.”
+              "I cannot answer based on the retrieved documents."
+            - Do NOT invent legal definitions, rules, penalties, commentary, or interpretations
+              that are not explicitly stated in the context.
+            - If the user asks for legal advice, warnings, or interpretations beyond the text, say:
+              "I can only provide information found in the retrieved documents."
+            - Keep the answer concise (3–6 sentences), neutral, and purely informational.
 
-            Formatting rules:
-            - Answer in 3–6 sentences unless the question requires more.
-            - Cite relevant context sections using short quotes if helpful.
+            ### REQUIRED OUTPUT FORMAT
+            You MUST produce BOTH sections below.  
+            Do not omit, rename, or reorder them.
 
-            Now answer the user question based on the context below.
+            Example Output Format:
+            ANSWER:
+            <your 3–6 sentence answer here>
+
+            REFERENCE:
+            Document Name: <document name>
+            Link: <document link>
+
+            ### Now answer using ONLY the information below.
 
             ---------------------
             CONTEXT:
@@ -86,6 +95,13 @@ def answer(query):
             QUESTION:
             {question}
 
+            NAME:
+            {name}
+
+            LINK:
+            {link}
+
+            ### Write your output now following the REQUIRED OUTPUT FORMAT strictly.
             ANSWER:
             """
   
@@ -94,13 +110,15 @@ def answer(query):
   chain = prompt | model | parser
   answer = chain.invoke({
       "question": f"{query}", 
-      "context": "\n\n".join([chunk.page_content for chunk in relevant_chunks])
+      "context": "\n\n".join([chunk.page_content for chunk in relevant_chunks]),
+      "name": f"{name}",
+      "link": f"{link}"
   })
 
-#   print("\n\n".join([chunk.page_content for chunk in relevant_chunks]))
   return answer
 
 
-query = "Under what circumstances can a federal institution refuse access to records on the grounds that they contain information obtained in confidence from another government??"
+query = "List out all of the rights that a minister has while discharging responsibilites, as defined in the aeronautics act."
 
+print("Paul is thinking...")
 print(answer(query))
